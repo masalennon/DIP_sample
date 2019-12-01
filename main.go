@@ -4,19 +4,34 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/masalennon/DIP_sample/employee"
+
 	"github.com/masalennon/DIP_sample/db"
 	"github.com/masalennon/DIP_sample/store"
 )
 
 func main() {
-	db.Init()
-	http.Handle("/employees/", http.StripPrefix("/employees/", http.HandlerFunc(getEmployee)))
+	d := db.Init()
+	es := store.NewEmployeeGormStore(d)
+	h := NewEmployeeHandler(es)
+	http.Handle("/employees/", http.StripPrefix("/employees/", http.HandlerFunc(h.getEmployee)))
 	http.ListenAndServe(":8080", nil)
 }
 
-func getEmployee(w http.ResponseWriter, r *http.Request) {
+type EmployeeHandler struct {
+	es employee.Store
+}
+
+func NewEmployeeHandler(es employee.Store) *EmployeeHandler {
+	return &EmployeeHandler{
+		es: es,
+	}
+}
+
+func (h EmployeeHandler) getEmployee(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path
-	employee, err := store.GetEmployeeByID(id)
+	employee, err := h.es.GetEmployeeByID(id)
+
 	if err != nil {
 		panic(err)
 	}
